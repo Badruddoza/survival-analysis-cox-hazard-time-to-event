@@ -1,0 +1,79 @@
+## Survival analysis and Cox model
+
+rm(list=ls())
+
+# install.packages("survminer")
+library(survival)
+library(survminer)
+library(tidyverse)
+library(lubridate)
+
+
+############################### Working with dates ##############################
+
+# creating a tibble with dates
+date_ex <- tibble(sx_date = c("2007-06-22", "2004-02-13", "2010-10-27"), last_fup_date = c("2017-04-15", "2018-07-04", "2016-10-31"))
+date_ex
+
+# format dates with base R
+date_ex %>% mutate(
+    sx_date = as.Date(sx_date, format = "%Y-%m-%d"), 
+    last_fup_date = as.Date(last_fup_date, format = "%Y-%m-%d"))
+
+# format dates with lubridate package
+date_ex %>% mutate(sx_date = ymd(sx_date), 
+    last_fup_date = ymd(last_fup_date))
+
+# calculate survival times (days to years)
+date_ex %>% mutate(os_yrs =as.numeric(difftime(last_fup_date,sx_date,units = "days"))/365.25)
+
+
+
+############################## Lung cancer surviving analysis ###################
+head(lung)
+
+Surv(lung$time, lung$status)[1:10]
+
+# Estimating survival curves with the Kaplan-Meier method
+f1 <- survfit(Surv(time, status) ~ 1, data = lung)
+names(f1)
+
+plot(survfit(Surv(time, status) ~ 1, data = lung), 
+     xlab = "Days", 
+     ylab = "Overall survival probability")
+
+# can be done using ggplot as well
+ggsurvplot(
+  fit = survfit(Surv(time, status) ~ 1, data = lung), 
+  xlab = "Days", 
+  ylab = "Overall survival probability")
+
+
+# check the survival object (the time after treatment)
+Surv(lung$time,lung$status)
+
+# fit the model
+survfit(Surv(time, status) ~ 1, data = lung)
+
+# Estimating t-year survival
+summary(survfit(Surv(time, status) ~ 1, data = lung), times = 365.25)
+# the survival rate is 0.409 or 41%
+# n.risk number of subjects at risk at t
+# n.event number of events that occur at time t
+
+
+# median survival time
+survfit(Surv(time, status) ~ 1, data = lung)
+
+# compare survival times between groups
+survdiff(Surv(time, status) ~ sex, data = lung)
+
+
+
+
+############################ The Cox regression model ##########################
+coxph(Surv(time, status) ~ sex, data = lung)
+
+# calculate hazard ratio for ph.ecog
+a<-coxph(Surv(time, status) ~ sex, data = lung)
+exp(a$coefficients)
